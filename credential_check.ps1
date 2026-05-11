@@ -209,9 +209,9 @@ $checks = @(
                 #}
                 }
                 If($fwIssueFound -ne 1 ) {"No changes needed. Correct configuration." }
-                Else {Write-Host "Note: This is auditing the minimum required built-in firewall rules as described in the documentation below.
+                Else {Write-Host ("Note: This is auditing the minimum required built-in firewall rules as described in the documentation below.
                 It does not check for custom rules or third-party firewall configurations. As such, the results above should
-                be validated with the action taken to allow Nessus through the local firewall."
+                be validated with the action taken to allow Nessus through the local firewall." -replace '(?m)^[ \t]+', '')
                     Write-Host
                     Write-Host "https://docs.tenable.com/nessus/Content/CredentialedChecksOnWindows.htm"}
             }
@@ -391,8 +391,7 @@ foreach ($check in $checks)
 
     For more information:
     $($check.see_also)
-    "
-    Write-Host "--------------------------------------------------------"
+    " -replace '(?m)^[ \t]+', ''
     Write-Host "Checking `"$($check.description)`""
     Write-Host
 
@@ -403,6 +402,5 @@ foreach ($check in $checks)
         'custom' { Compare-TENBCustom }
         'firewall' { Compare-TENBFirewall }
     }
-    Write-Host "--------------------------------------------------------"
     Write-Host
 }#end foreach check in checks
