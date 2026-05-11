@@ -1,11 +1,10 @@
-# Kiểm Tra Sẵn Sàng Quét Có Xác Thực Của Nessus (Windows)
+# nessus-credentialed-readiness check
 
-Script PowerShell này được thiết kế để chạy trên một máy Windows được Microsoft hỗ trợ. Nó kiểm tra các vấn đề phổ biến nhất có thể khiến việc quét có xác thực (credentialed scan) của Nessus thất bại.
+Script PowerShell này được thiết kế để kiểm tra các vấn đề phổ biến nhất có thể khiến quá trình credentialed scan của Nessus thất bại.
 
-## Lưu Ý
+## Lưu ý
 * Phải chạy với quyền quản trị (Administrator) trong PowerShell phiên bản x64.
 * Script sẽ từ chối khởi chạy nếu không có quyền Admin hoặc không phải 64-bit.
-* Có thể cần thay đổi [Chính Sách Thực Thi PowerShell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.1) để cho phép script chạy.
 * Script **không thay đổi** cấu hình hệ thống. Hãy xem kết quả và tự tay chỉnh sửa khi cần.
 * Bạn phải truyền tên (username) của (các) tài khoản được phép thực hiện quét Nessus để chạy đánh giá.
     * Nếu user/group được lồng nhau, hãy truyền group cấp cao nhất dự kiến có trên hệ thống đích.
@@ -30,7 +29,7 @@ Script PowerShell này được thiết kế để chạy trên một máy Windo
 * Symantec Endpoint Protection có thể chặn việc quét
 * Kiểm tra UAC Remote Auth Token
 
-## Mỗi Kiểm Tra Làm Gì
+## Thông tin thêm
 * **Local Admin User/Group** — Xác nhận (các) tài khoản bạn truyền vào tham số `-ScanningAccounts` là thành viên của nhóm `Administrators` cục bộ. Chỉ kiểm tra thành viên trực tiếp; không xử lý các domain group lồng nhau.
 * **Remote Shares (registry)** — Đọc giá trị `AutoShareServer` / `AutoShareWks` tại `HKLM\…\LanmanServer\Parameters`. Hai khóa này yêu cầu Windows publish các admin share.
 * **Các share quản trị thực sự được publish** — Gọi `Get-SmbShare` để xác nhận `ADMIN$`, `C$`, và `IPC$` thật sự đang tồn tại. Bắt được trường hợp GPO hoặc lệnh `net share /delete` đã xóa chúng dù registry vẫn nói là phải có.
@@ -61,14 +60,3 @@ Script PowerShell này được thiết kế để chạy trên một máy Windo
 
 * Mở PowerShell với quyền quản trị và chạy script trên một máy từ xa. Phương án này yêu cầu [Remote PowerShell Management](https://docs.microsoft.com/en-us/windows/win32/winrm/portal) đã được cấu hình và hoạt động.
 `Invoke-Command -ComputerName 203.0.113.5 -FilePath .\credential_check.ps1 -ScanningAccounts "vuln_scan"`
-
-## Quan Trọng
-Đây không phải là một dự án được Tenable hỗ trợ chính thức.
-
-Việc sử dụng công cụ này tuân theo các điều khoản và điều kiện được nêu bên dưới, và không thuộc bất kỳ thỏa thuận giấy phép nào bạn có thể có với Tenable.
-
-## Giấy Phép
-GNU General Public License v3.0; xem [LICENSE](https://github.com/tecnobabble/nessus_win_cred_test/blob/main/LICENSE)
-
-## Đóng Góp
-Xem chi tiết [tại đây](https://github.com/tecnobabble/nessus_win_cred_test/blob/main/CONTRIBUTING.MD)
