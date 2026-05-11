@@ -190,33 +190,28 @@ $checks = @(
                 If($_.Enabled -eq 1){
                     $FWDcomInStatus    = get-netfirewallrule -DisplayName $FWDcomInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Profile -eq $($_.Name) | Where Action -Match Allow | Where Enabled -eq True
                     $FWDcomInAllStatus = get-netfirewallrule -DisplayName $FWDcomInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Action -Match Allow | Where Enabled -eq True
-                    If(!$FWDcomInStatus -And !$FWDcomInAllStatus ) {"The $($_.Name) profile doesn't have $FWDcomInName enabled. This is required."; $fwIssueFound = 1}
+                    If(!$FWDcomInStatus -And !$FWDcomInAllStatus ) {"[x] The $($_.Name) profile doesn't have $FWDcomInName enabled. This is required."; $fwIssueFound = 1}
 
                     $FWWmiInStatus     = get-netfirewallrule -DisplayName $FWWmiInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Profile -eq $($_.Name) | Where Action -Match Allow | Where Enabled -eq True
                     $FWWmiInAllStatus  = get-netfirewallrule -DisplayName $FWWmiInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Action -Match Allow | Where Enabled -eq True
-                    If(!$FWWmiInStatus -And !$FWWmiInAllStatus) {"The $($_.Name) profile doesn't have $FWWmiInName enabled. This is required."; $fwIssueFound = 1}
+                    If(!$FWWmiInStatus -And !$FWWmiInAllStatus) {"[x] The $($_.Name) profile doesn't have $FWWmiInName enabled. This is required."; $fwIssueFound = 1}
 
                     $FWASyncInStatus    = get-netfirewallrule -DisplayName $FWASyncInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Profile -eq $($_.Name) | Where Action -Match Allow | Where Enabled -eq True
                     $FWASyncInAllStatus = get-netfirewallrule -DisplayName $FWASyncInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Action -Match Allow | Where Enabled -eq True
-                    If(!$FWASyncInStatus -And !$FWASyncInAllStatus) {"The $($_.Name) profile doesn't have $FWASyncInName enabled. This is required."; $fwIssueFound = 1}
+                    If(!$FWASyncInStatus -And !$FWASyncInAllStatus) {"[x] The $($_.Name) profile doesn't have $FWASyncInName enabled. This is required."; $fwIssueFound = 1}
 
                     $FWSMBInStatus     = get-netfirewallrule -DisplayName $FWSMBInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Profile -eq $($_.Name) | Where Action -Match Allow | Where Enabled -eq True
                     $FWSMBInAllStatus  = get-netfirewallrule -DisplayName $FWSMBInName -PolicyStore ActiveStore | Where Direction -eq Inbound | Where Action -Match Allow | Where Enabled -eq True
-                    If(!$FWSMBInStatus -And !$FWSMBInAllStatus) {Write-Host "The $($_.Name) profile doesn't have $FWSMBInName enabled. This is required."; $fwIssueFound = 1}
+                    If(!$FWSMBInStatus -And !$FWSMBInAllStatus) {Write-Host "[x] The $($_.Name) profile doesn't have $FWSMBInName enabled. This is required."; $fwIssueFound = 1}
                 }
                 #Else{
                 #    Write-Host "The Windows Firewall $($_.Name) profile is disabled; skipping checks."
                 #}
                 }
-                If($fwIssueFound -ne 1 ) {"No changes needed. Correct configuration." }
-                Else {Write-Host ("Note: This is auditing the minimum required built-in firewall rules as described in the documentation below.
-                It does not check for custom rules or third-party firewall configurations. As such, the results above should
-                be validated with the action taken to allow Nessus through the local firewall." -replace '(?m)^[ \t]+', '')
-                    Write-Host
-                    Write-Host "https://docs.tenable.com/nessus/Content/CredentialedChecksOnWindows.htm"}
+                If($fwIssueFound -ne 1 ) {"[+] No changes needed. Correct configuration." }
             }
             Else{
-                Write-Host "The $($_.DisplayName) service is stopped; skipping checks."
+                Write-Host "[!] The $($_.DisplayName) service is stopped; skipping checks."
                 }
             }
             )
@@ -283,31 +278,29 @@ function Compare-TENBFirewall {
 
 function Compare-TENBCustom {
     $Result = Invoke-Command -ScriptBlock {$check.custom_check}
-    If ($Result -eq 0) {Write-Host "No changes needed. Correct configuration."}
+    If ($Result -eq 0) {Write-Host "[+] No changes needed. Correct configuration."}
     Else {
-            Write-Warning -Message "$warning_message"
+            Write-Host "[x] $warning_message"
     }
 }
 
 function Compare-TENBPowerShell {
     Try { $Result = Invoke-Expression $check.ps_check }
     Catch
-     { Write-Warning -Message "Error during Compare-TENBPowerShell: $warning_message"
-     Write-Warning -Message "The current status is `"$Result`""     }
+     { Write-Host "[x] Error during Compare-TENBPowerShell: $warning_message"
+     Write-Host "[!] The current status is `"$Result`""     }
     Finally {
         $good_check = 0
         Foreach ($i in $check.ps_result)
         {
             $ei = [regex]::Escape($i)
-            If ($Result -Match $ei) {Write-Host "$i is configured correctly."; $good_check = 1}
+            If ($Result -Match $ei) {Write-Host "[+] $i is configured correctly."; $good_check = 1}
         }
-        Write-Host ""
-        If ($good_check -eq 1) {Write-Host "No changes needed. Correct configuration."}
+        If ($good_check -eq 1) {Write-Host "[+] No changes needed. Correct configuration."}
         Else {
-            Write-Warning -Message "$warning_message"
-            Write-Warning -Message "The current status is `"$Result`""
-            Write-Warning -Message "The correct setting should be one of:"
-            Write-Host ""
+            Write-Host "[x] $warning_message"
+            Write-Host "[!] The current status is `"$Result`""
+            Write-Host "[!] The correct setting should be one of:"
             Write-Host ($check.ps_result | Out-String) -ForegroundColor yellow -BackgroundColor black
         }
     }
@@ -326,31 +319,31 @@ function Compare-TENBRegistry {
     Try { $Result = (Get-ItemProperty $registryPath -Name $keyName).$keyName }
     Catch [System.Management.Automation.PSArgumentException] {
         If ($($check.options) -eq 'can_be_null') {
-            Write-Host "No changes needed. Correct configuration."
+            Write-Host "[+] No changes needed. Correct configuration."
             $good_check = 1
         }
         Else {
-            Write-Warning -Message "$warning_message"
-            Write-Warning -Message "The current status is `"$Result`""
+            Write-Host "[x] $warning_message"
+            Write-Host "[!] The current status is `"$Result`""
             $good_check = 1
         }
     }
     Catch [System.Management.Automation.ItemNotFoundException] {
-        Write-Warning -Message "$warning_message"
-        Write-Warning -Message "The current status is `"$Result`""
+        Write-Host "[x] $warning_message"
+        Write-Host "[!] The current status is `"$Result`""
         $good_check = 1
     }
     Catch {
-        Write-Warning -Message "Err during Compare-TENBRegistry: $warning_message"
-        Write-Warning -Message "The current status is `"$Result`""
+        Write-Host "[x] Err during Compare-TENBRegistry: $warning_message"
+        Write-Host "[!] The current status is `"$Result`""
         }
     Finally {
         If ($Result -eq $($check.reg_value)) {
-            Write-Host "No changes needed. Correct configuration."
+            Write-Host "[+] No changes needed. Correct configuration."
             }
         Elseif ($Result -ne $($check.reg_value) -and ($good_check -ne 1)) {
-            Write-Warning -Message "$warning_message"
-            Write-Warning -Message "The current status is `"$Result`""
+            Write-Host "[x] $warning_message"
+            Write-Host "[!] The current status is `"$Result`""
             }
     }
 }
@@ -359,24 +352,26 @@ function Compare-TENBService {
     Try { $Result = (Get-WmiObject -Query "Select StartMode from Win32_Service Where Name='$($check.serv_name)'").StartMode}
     Catch {
      "$Result"
-     Write-Warning -Message "Err during Compare-TENBService: $warning_message"
-     Write-Warning -Message "The current status is `"$Result`""}
+     Write-Host "[x] Err during Compare-TENBService: $warning_message"
+     Write-Host "[!] The current status is `"$Result`""}
     Finally {
-        If ($Result -eq $($check.serv_status)) {Write-Host "No changes needed. Correct configuration."}
+        If ($Result -eq $($check.serv_status)) {Write-Host "[+] No changes needed. Correct configuration."}
         Elseif ($($check.serv_status2))
-            {If ($Result -eq $($check.serv_status2)) {Write-Host "No changes needed. Correct configuration."}
+            {If ($Result -eq $($check.serv_status2)) {Write-Host "[+] No changes needed. Correct configuration."}
             Else
-            {Write-Warning -Message "$warning_message"
-            Write-Warning -Message "The current status is `"$Result`""}}
+            {Write-Host "[x] $warning_message"
+            Write-Host "[!] The current status is `"$Result`""}}
         Else
-            {Write-Warning -Message "$warning_message"
-            Write-Warning -Message "The current status is `"$Result`""}
+            {Write-Host "[x] $warning_message"
+            Write-Host "[!] The current status is `"$Result`""}
     }
 }
 
 # Main func here
 $local_host = [Environment]::MachineName
 $local_domain = (Get-CimInstance -ClassName Win32_ComputerSystem).Domain
+Write-Host "Checking the readiness for Nessus credentialed scans"
+Write-Host "Visit https://docs.tenable.com/nessus/Content/CredentialedChecksOnWindows.htm for more information"
 Write-Host "Report for $local_host, part of $local_domain"
 Write-Host
 
@@ -393,7 +388,6 @@ foreach ($check in $checks)
     $($check.see_also)
     " -replace '(?m)^[ \t]+', ''
     Write-Host "Checking `"$($check.description)`""
-    Write-Host
 
     switch ($check.check_type) {
         'registry' { Compare-TENBRegistry $check.reg_key $check.reg_name $check.reg_value }
