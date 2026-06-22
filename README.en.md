@@ -16,6 +16,7 @@ This Powershell script is designed to be run on a supported (by Microsoft) Windo
 * Local Admin User/Group Requirements  
 * Ensure Remote Shares are Available (Client or Server)   
 * Administrative shares (`ADMIN$`, `C$`, `IPC$`) are actually published  
+* SMBv2 is enabled on the Server service (445 listening does not mean SMB works)  
 * TCP port 135 (RPC endpoint mapper) is listening  
 * Windows Remote Registry Service Should be Enabled or Manual  
 * Windows Server Service Must be Enabled  
@@ -34,6 +35,7 @@ This Powershell script is designed to be run on a supported (by Microsoft) Windo
 * **Local Admin User/Group** — Confirms the account(s) you passed in `-ScanningAccounts` are members of the local `Administrators` group. Direct membership only; nested domain groups are not resolved.
 * **Remote Shares (registry)** — Reads `AutoShareServer` / `AutoShareWks` under `HKLM\…\LanmanServer\Parameters`. These tell Windows to publish admin shares.
 * **Administrative shares published** — Calls `Get-SmbShare` to confirm `ADMIN$`, `C$`, and `IPC$` actually exist right now. Catches the case where a GPO or `net share /delete` removed them even though the registry says they should be on.
+* **SMBv2 on the Server service** — Calls `Get-SmbServerConfiguration` and confirms `EnableSMB2Protocol` is `True`. This is a common cause of "port 445 is open but Nessus still can't connect": the LanmanServer service is running so the port answers the connection, but if SMBv2 is disabled the SMB2/3 session is rejected. Nessus only authenticates over SMB2 and above. On older hosts (pre-Server 2012) the cmdlet is unavailable and the check is skipped.
 * **TCP port 135** — Calls `Get-NetTCPConnection` to confirm something is listening on port 135. Nessus uses this for RPC/WMI; if nothing answers, WMI checks fail.
 * **Remote Registry / Server / WMI services** — Checks the start mode of `RemoteRegistry`, `LanmanServer`, and `Winmgmt`. Must be `Auto` (Remote Registry can also be `Manual`).
 * **ForceGuest** — Checks `HKLM\System\CurrentControlSet\Control\Lsa\ForceGuest = 0`. If set to 1, all incoming local logons map to Guest and Nessus loses its admin rights.

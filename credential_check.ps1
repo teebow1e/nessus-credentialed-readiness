@@ -270,6 +270,40 @@ $checks = @(
             If ($missing.Count -eq 0) {"0"} Else {"1"}
             )
     }
+    @{
+        check_type   = 'custom'
+        description  = "SMBv2 is enabled on the Server service (445 can listen but still reject Nessus if v2 is off)"
+        info         = "Nessus authenticates over SMB2/SMB3. If TCP 445 is listening but SMBv2 is disabled on the server side, the LanmanServer service will reject the session even though the port answers a connection. This is a common cause of 'port open but no credentialed access' symptoms."
+        solution     = "Enable SMBv2 on the server:
+
+        Set-SmbServerConfiguration -EnableSMB2Protocol `$true -Force
+
+        Confirm it took effect:
+
+        Get-SmbServerConfiguration | Select EnableSMB1Protocol, EnableSMB2Protocol
+
+        SMBv1 should remain disabled. If a hardening GPO disabled SMBv2 by mistake, correct the policy rather than the local override so it does not revert on the next refresh."
+        see_also     = "https://docs.tenable.com/nessus/Content/CredentialedChecksOnWindows.htm
+        https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-security"
+        custom_check = @(
+            Try {
+                $smbCfg = Get-SmbServerConfiguration
+            }
+            Catch {
+                # Get-SmbServerConfiguration is unavailable (pre-2012 / older host). Nothing to assert.
+                $smbCfg = $null
+            }
+            If ($null -eq $smbCfg) {
+                "0"
+            }
+            ElseIf ($smbCfg.EnableSMB2Protocol -ne $true) {
+                "1"
+            }
+            Else {
+                "0"
+            }
+            )
+    }
 )
 
 function Compare-TENBFirewall {

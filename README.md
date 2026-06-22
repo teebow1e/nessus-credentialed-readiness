@@ -15,6 +15,7 @@ Script PowerShell này được thiết kế để kiểm tra các vấn đề p
 * Yêu cầu User/Group có trong nhóm Local Administrators
 * Đảm bảo Remote Shares được bật (Client hoặc Server)
 * Các share quản trị (`ADMIN$`, `C$`, `IPC$`) thực sự được publish
+* SMBv2 đang được bật trên service Server (cổng 445 mở không có nghĩa là SMB hoạt động)
 * Cổng TCP 135 (RPC endpoint mapper) đang lắng nghe
 * Service `Remote Registry` của Windows phải được đặt là `Automatic` hoặc `Manual`
 * Service `Server` (LanmanServer) phải được bật
@@ -33,6 +34,7 @@ Script PowerShell này được thiết kế để kiểm tra các vấn đề p
 * **Local Admin User/Group** — Xác nhận (các) tài khoản bạn truyền vào tham số `-ScanningAccounts` là thành viên của nhóm `Administrators` cục bộ. Chỉ kiểm tra thành viên trực tiếp; không xử lý các domain group lồng nhau.
 * **Remote Shares (registry)** — Đọc giá trị `AutoShareServer` / `AutoShareWks` tại `HKLM\…\LanmanServer\Parameters`. Hai khóa này yêu cầu Windows publish các admin share.
 * **Các share quản trị thực sự được publish** — Gọi `Get-SmbShare` để xác nhận `ADMIN$`, `C$`, và `IPC$` thật sự đang tồn tại. Bắt được trường hợp GPO hoặc lệnh `net share /delete` đã xóa chúng dù registry vẫn nói là phải có.
+* **SMBv2 trên service Server** — Gọi `Get-SmbServerConfiguration` và xác nhận `EnableSMB2Protocol` đang `True`. Đây là nguyên nhân phổ biến của tình trạng "cổng 445 mở nhưng Nessus vẫn không kết nối được": service LanmanServer đang chạy nên cổng trả lời kết nối, nhưng nếu SMBv2 tắt thì phiên làm việc SMB2/3 sẽ bị từ chối. Nessus chỉ xác thực qua SMB2 trở lên. Trên các host cũ (trước Server 2012) không có cmdlet này, kiểm tra sẽ tự bỏ qua.
 * **Cổng TCP 135** — Gọi `Get-NetTCPConnection` để xác nhận có process đang lắng nghe ở cổng 135. Nessus dùng cổng này cho RPC/WMI; nếu không có gì trả lời, các kiểm tra WMI sẽ thất bại.
 * **Các service Remote Registry / Server / WMI** — Kiểm tra start mode của `RemoteRegistry`, `LanmanServer`, và `Winmgmt`. Phải là `Auto` (riêng `Remote Registry` cũng có thể đặt là `Manual`).
 * **ForceGuest** — Kiểm tra `HKLM\System\CurrentControlSet\Control\Lsa\ForceGuest = 0`. Nếu đặt thành 1, mọi đăng nhập cục bộ từ xa sẽ bị map thành Guest và Nessus mất quyền admin.
